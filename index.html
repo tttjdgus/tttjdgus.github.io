@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>급여 계산기</title>
+  <meta name="description" content="알바 급여 계산기 - 시급, 주휴수당, 야간수당, 연장수당 자동 계산. 달력으로 근무일 기록하면 급여가 자동 계산됩니다.">
+  <meta name="keywords" content="알바 급여 계산기, 주휴수당 계산기, 시급 계산기, 야간수당, 연장수당, 직장인 급여 계산기">
+  <meta property="og:title" content="급여 계산기 - 알바·직장인 급여 자동 계산">
+  <meta property="og:description" content="시급, 주휴수당, 야간수당, 연장수당 자동 계산. 달력으로 근무일 기록하면 월급여가 자동 계산됩니다.">
+  <meta property="og:type" content="website">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -329,7 +334,7 @@
       </form>
     </section>
 
-
+x
     <!-- 법적 정보 섹션 -->
     <section class="card legal-section" id="legalSection">
       <h2 class="section-title">법적 정보</h2>
@@ -357,6 +362,10 @@
           <h3>4. 개정</h3>
           <p>본 정책은 예고 없이 변경될 수 있습니다. 마지막 수정일: 2026년 6월</p>
         </div>
+        <div class="modal-footer">
+          <button class="modal-dont-show" onclick="dontShowAgain('privacy')">다시 보지 않기</button>
+          <button class="modal-close-btn" onclick="closeModal('privacyModal')">닫기</button>
+        </div>
       </div>
     </div>
 
@@ -377,6 +386,10 @@
           
           <h3>4. 정책 변경</h3>
           <p>이용약관은 예고 없이 변경될 수 있습니다.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-dont-show" onclick="dontShowAgain('terms')">다시 보지 않기</button>
+          <button class="modal-close-btn" onclick="closeModal('termsModal')">닫기</button>
         </div>
       </div>
     </div>

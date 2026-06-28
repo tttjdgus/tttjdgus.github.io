@@ -1322,21 +1322,34 @@ function init() {
 
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) modal.hidden = false;
+  if (modal) { modal.hidden = false; modal.style.display = 'flex'; }
 }
 
 function closeModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) modal.hidden = true;
+  if (modal) { modal.hidden = true; modal.style.display = 'none'; }
 }
 
-// 법적 정보 링크 클릭 이벤트
+function dontShowAgain(type) {
+  localStorage.setItem('dontShow_' + type, 'true');
+  closeModal(type + 'Modal');
+}
+
+document.querySelectorAll('.modal').forEach(modal => {
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) { modal.hidden = true; modal.style.display = 'none'; }
+  });
+});
+
 document.querySelectorAll('.legal-link').forEach(link => {
   link.addEventListener('click', (e) => {
     e.preventDefault();
     const href = link.getAttribute('href');
-    if (href === '#privacy') openModal('privacyModal');
-    else if (href === '#terms') openModal('termsModal');
+    if (href === '#privacy') {
+      if (!localStorage.getItem('dontShow_privacy')) openModal('privacyModal');
+    } else if (href === '#terms') {
+      if (!localStorage.getItem('dontShow_terms')) openModal('termsModal');
+    }
   });
 });
 
