@@ -93,8 +93,12 @@ function calculateEmployeeIncomeTax(monthlyWage, familyCount) {
 }
 
 function updateEmployeeCalculation() {
-  const annualSalary = parseInt(document.getElementById("employeeAnnualSalary").value, 10) || 0;
-  const familyCount = parseInt(document.getElementById("employeeFamilyCount").value, 10) || 0;
+  const salaryEl = els.employeeAnnualSalary;
+  const familyEl = els.employeeFamilyCount;
+  if (!salaryEl || !familyEl) return;
+
+  const annualSalary = parseInt(salaryEl.value, 10) || 0;
+  const familyCount = parseInt(familyEl.value, 10) || 0;
   const monthlyGross = Math.round(annualSalary / 12);
 
   const insurance = calculateEmployeeInsurance(monthlyGross);
@@ -102,15 +106,26 @@ function updateEmployeeCalculation() {
   const totalDeduction = insurance.totalInsurance + tax.totalTax;
   const monthlyNet = monthlyGross - totalDeduction;
 
-  document.getElementById("empMonthlyGross").textContent = monthlyGross.toLocaleString("ko-KR") + "원";
-  document.getElementById("empNationalPension").textContent = insurance.nationalPension.toLocaleString("ko-KR") + "원";
-  document.getElementById("empHealthInsurance").textContent = insurance.healthInsurance.toLocaleString("ko-KR") + "원";
-  document.getElementById("empLongTermCare").textContent = insurance.longTermCare.toLocaleString("ko-KR") + "원";
-  document.getElementById("empEmploymentInsurance").textContent = insurance.employmentInsurance.toLocaleString("ko-KR") + "원";
-  document.getElementById("empIncomeTax").textContent = tax.incomeTax.toLocaleString("ko-KR") + "원";
-  document.getElementById("empLocalTax").textContent = tax.localTax.toLocaleString("ko-KR") + "원";
-  document.getElementById("empTotalDeduction").textContent = totalDeduction.toLocaleString("ko-KR") + "원";
-  document.getElementById("empMonthlyNet").textContent = monthlyNet.toLocaleString("ko-KR") + "원";
+  if (!els.empMonthlyGross) return;
+
+  els.empMonthlyGross.textContent = monthlyGross.toLocaleString("ko-KR") + "원";
+  els.empNationalPension.textContent = insurance.nationalPension.toLocaleString("ko-KR") + "원";
+  els.empHealthInsurance.textContent = insurance.healthInsurance.toLocaleString("ko-KR") + "원";
+  els.empLongTermCare.textContent = insurance.longTermCare.toLocaleString("ko-KR") + "원";
+  els.empEmploymentInsurance.textContent = insurance.employmentInsurance.toLocaleString("ko-KR") + "원";
+  els.empIncomeTax.textContent = tax.incomeTax.toLocaleString("ko-KR") + "원";
+  els.empLocalTax.textContent = tax.localTax.toLocaleString("ko-KR") + "원";
+  els.empTotalDeduction.textContent = totalDeduction.toLocaleString("ko-KR") + "원";
+  els.empMonthlyNet.textContent = monthlyNet.toLocaleString("ko-KR") + "원";
+}
+
+function initEmployee() {
+  if (!els.employeeAnnualSalary || !els.employeeFamilyCount) return;
+
+  els.employeeAnnualSalary.addEventListener("input", updateEmployeeCalculation);
+  els.employeeAnnualSalary.addEventListener("change", updateEmployeeCalculation);
+  els.employeeFamilyCount.addEventListener("change", updateEmployeeCalculation);
+  updateEmployeeCalculation();
 }
 
 function createDefaultSettings() {
@@ -194,7 +209,17 @@ const els = {
   payHoliday: document.getElementById("payHoliday"),
   payTotal: document.getElementById("payTotal"),
   payNet: document.getElementById("payNet"),
-  pdfDownloadBtn: document.getElementById("pdfDownloadBtn"),
+  employeeAnnualSalary: document.getElementById("employeeAnnualSalary"),
+  employeeFamilyCount: document.getElementById("employeeFamilyCount"),
+  empMonthlyGross: document.getElementById("empMonthlyGross"),
+  empNationalPension: document.getElementById("empNationalPension"),
+  empHealthInsurance: document.getElementById("empHealthInsurance"),
+  empLongTermCare: document.getElementById("empLongTermCare"),
+  empEmploymentInsurance: document.getElementById("empEmploymentInsurance"),
+  empIncomeTax: document.getElementById("empIncomeTax"),
+  empLocalTax: document.getElementById("empLocalTax"),
+  empTotalDeduction: document.getElementById("empTotalDeduction"),
+  empMonthlyNet: document.getElementById("empMonthlyNet"),
   themeToggle: document.getElementById("themeToggle"),
   feedbackForm: document.getElementById("feedbackForm"),
   feedbackAuthor: document.getElementById("feedbackAuthor"),
@@ -474,145 +499,6 @@ function calcNetPay(gross, taxMode) {
   return gross;
 }
 
-function calcTaxDeduction(gross, taxMode) {
-  return gross - calcNetPay(gross, taxMode);
-}
-
-function getTaxModeLabel(taxMode) {
-  if (taxMode === "insurance") return "4대보험 9.7174%";
-  if (taxMode === "income") return "소득세 3.3%";
-  return "미적용";
-}
-
-function sanitizeFilename(name) {
-  return String(name).replace(/[\\/:*?"<>|]/g, "").trim() || "알바";
-}
-
-function collectWorkDayDetails() {
-  const { viewYear, viewMonth } = state;
-  const workDays = getWorkDays();
-  const lastDay = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const rows = [];
-
-  for (let d = 1; d <= lastDay; d++) {
-    const key = dateKey(viewYear, viewMonth, d);
-    const record = workDays[key];
-    if (!record || !record.work) continue;
-
-    const date = new Date(viewYear, viewMonth, d);
-    const { nightHours, overtimeHours } = calcDayHours(record);
-
-    rows.push({
-      label: (viewMonth + 1) + "/" + d + " (" + WEEKDAYS[date.getDay()] + ")",
-      time: formatTimeRange(record.startTime, record.endTime),
-      hours: formatHours(calcDayHours(record).hours),
-      night: nightHours > 0 ? "O" : "-",
-      overtime: overtimeHours > 0 ? "O" : "-",
-    });
-  }
-
-  return rows;
-}
-
-function buildPdfElement() {
-  const settings = getSettings();
-  const stats = calcMonthStats();
-  const { viewYear, viewMonth } = state;
-  const workRows = collectWorkDayDetails();
-  const taxDeduction = calcTaxDeduction(stats.total, settings.taxMode);
-
-  const workTableRows = workRows.length > 0
-    ? workRows.map((row) =>
-      "<tr>" +
-      "<td>" + row.label + "</td>" +
-      "<td>" + row.time + "</td>" +
-      "<td>" + row.hours + "</td>" +
-      "<td style=\"text-align:center\">" + row.night + "</td>" +
-      "<td style=\"text-align:center\">" + row.overtime + "</td>" +
-      "</tr>"
-    ).join("")
-    : "<tr><td colspan=\"5\" style=\"text-align:center;color:#6b7280;padding:16px\">근무 기록 없음</td></tr>";
-
-  const el = document.createElement("div");
-  el.className = "pdf-payslip";
-  el.innerHTML =
-    "<style>" +
-    ".pdf-payslip{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:#1a1a2e;background:#fff;padding:24px;width:190mm;box-sizing:border-box}" +
-    ".pdf-payslip h1{font-size:22px;text-align:center;margin:0 0 6px;letter-spacing:-0.02em}" +
-    ".pdf-payslip .pdf-sub{text-align:center;font-size:11px;color:#6b7280;margin-bottom:20px}" +
-    ".pdf-payslip .pdf-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px}" +
-    ".pdf-payslip .pdf-meta-item{background:#f5f6f8;border-radius:6px;padding:10px 12px}" +
-    ".pdf-payslip .pdf-meta-label{font-size:10px;color:#6b7280;margin-bottom:2px}" +
-    ".pdf-payslip .pdf-meta-value{font-size:13px;font-weight:700}" +
-    ".pdf-payslip h2{font-size:13px;margin:0 0 8px;border-left:3px solid #4f46e5;padding-left:8px}" +
-    ".pdf-payslip table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:18px}" +
-    ".pdf-payslip th,.pdf-payslip td{border:1px solid #e5e7eb;padding:7px 8px;text-align:left}" +
-    ".pdf-payslip th{background:#f5f6f8;font-weight:600;color:#374151}" +
-    ".pdf-payslip .pdf-summary{border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}" +
-    ".pdf-payslip .pdf-row{display:flex;justify-content:space-between;padding:8px 14px;font-size:12px;border-bottom:1px solid #f0f0f0}" +
-    ".pdf-payslip .pdf-row:last-child{border-bottom:none}" +
-    ".pdf-payslip .pdf-row.total{background:#eef2ff;font-weight:700;font-size:13px;color:#4f46e5}" +
-    ".pdf-payslip .pdf-row.net{background:#ecfdf5;font-weight:700;font-size:14px;color:#059669}" +
-    ".pdf-payslip .pdf-row.deduct{color:#dc2626}" +
-    ".pdf-payslip .pdf-footer{margin-top:16px;font-size:9px;color:#9ca3af;text-align:center}" +
-    "</style>" +
-    "<h1>급여 명세서</h1>" +
-    "<p class=\"pdf-sub\">Pay Statement</p>" +
-    "<div class=\"pdf-meta\">" +
-    "<div class=\"pdf-meta-item\"><div class=\"pdf-meta-label\">알바 이름</div><div class=\"pdf-meta-value\">" + (settings.name || "알바") + "</div></div>" +
-    "<div class=\"pdf-meta-item\"><div class=\"pdf-meta-label\">귀속 연월</div><div class=\"pdf-meta-value\">" + viewYear + "년 " + (viewMonth + 1) + "월</div></div>" +
-    "<div class=\"pdf-meta-item\"><div class=\"pdf-meta-label\">시급</div><div class=\"pdf-meta-value\">" + formatCurrency(settings.hourlyWage) + "</div></div>" +
-    "</div>" +
-    "<h2>날짜별 근무 내역</h2>" +
-    "<table><thead><tr><th>날짜</th><th>근무시간</th><th>실근무</th><th>야간</th><th>연장</th></tr></thead><tbody>" +
-    workTableRows +
-    "</tbody></table>" +
-    "<h2>급여 내역</h2>" +
-    "<div class=\"pdf-summary\">" +
-    "<div class=\"pdf-row\"><span>기본급</span><span>" + formatCurrency(stats.base) + "</span></div>" +
-    "<div class=\"pdf-row\"><span>야간수당</span><span>" + formatCurrency(stats.night) + "</span></div>" +
-    "<div class=\"pdf-row\"><span>연장수당</span><span>" + formatCurrency(stats.overtime) + "</span></div>" +
-    "<div class=\"pdf-row\"><span>주휴수당</span><span>" + formatCurrency(stats.weeklyHoliday) + "</span></div>" +
-    "<div class=\"pdf-row\"><span>휴일수당</span><span>" + formatCurrency(stats.holiday) + "</span></div>" +
-    "<div class=\"pdf-row total\"><span>총 급여</span><span>" + formatCurrency(stats.total) + "</span></div>" +
-    "<div class=\"pdf-row deduct\"><span>세금 공제 (" + getTaxModeLabel(settings.taxMode) + ")</span><span>-" + formatCurrency(taxDeduction) + "</span></div>" +
-    "<div class=\"pdf-row net\"><span>예상 실수령액</span><span>" + formatCurrency(stats.net) + "</span></div>" +
-    "</div>" +
-    "<p class=\"pdf-footer\">본 명세서는 급여 계산기 앱에서 자동 생성되었습니다.</p>";
-
-  el.style.position = "fixed";
-  el.style.left = "-9999px";
-  el.style.top = "0";
-  return el;
-}
-
-function downloadPdf() {
-  const activeJobId = state.activeJobId;
-  if (!activeJobId) {
-    alert("알바를 선택해주세요");
-    return;
-  }
-  
-  const job = state.jobs.find(j => j.id === activeJobId);
-  if (!job) return;
-  
-  const year = state.viewYear;
-  const month = state.viewMonth + 1;
-  const monthStr = String(month).padStart(2, "0");
-  const filename = `${year}년${monthStr}월_${job.settings.name}_급여명세서.pdf`;
-  
-  const element = document.querySelector(".stats-section");
-  const opt = {
-    margin: 10,
-    filename: filename,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { orientation: "portrait", unit: "mm", format: "a4" }
-  };
-  
-  html2pdf().set(opt).from(element).save();
-}
-
 function calcMonthStatsForJob(job) {
   const { viewYear, viewMonth } = state;
   const settings = job.settings;
@@ -719,19 +605,27 @@ function initTheme() {
 const FORMSPREE_ENDPOINT = "https://formspree.io/f/xykqjyne";
 
 function hideFeedbackStatus() {
-  els.feedbackSuccess.hidden = true;
-  els.feedbackError.hidden = true;
+  if (els.feedbackSuccess) els.feedbackSuccess.hidden = true;
+  if (els.feedbackError) els.feedbackError.hidden = true;
 }
 
 function showFeedbackError(message) {
-  els.feedbackSuccess.hidden = true;
-  els.feedbackError.textContent = message;
-  els.feedbackError.hidden = false;
+  if (els.feedbackSuccess) els.feedbackSuccess.hidden = true;
+  if (els.feedbackError) {
+    els.feedbackError.textContent = message;
+    els.feedbackError.hidden = false;
+  } else {
+    alert(message);
+  }
 }
 
 function showFeedbackSuccess() {
-  els.feedbackError.hidden = true;
-  els.feedbackSuccess.hidden = false;
+  if (els.feedbackError) els.feedbackError.hidden = true;
+  if (els.feedbackSuccess) {
+    els.feedbackSuccess.hidden = false;
+  } else {
+    alert("피드백이 전송되었습니다. 감사합니다!");
+  }
 }
 
 async function submitFeedback(e) {
@@ -1360,7 +1254,6 @@ function initEvents() {
 
   els.copyPatternBtn.addEventListener("click", copyPatternToNextMonth);
   els.resetMonthBtn.addEventListener("click", resetMonthAttendance);
-  els.pdfDownloadBtn.addEventListener("click", downloadPdf);
 
   els.dayWorkToggle.addEventListener("change", () => {
     if (!state.selectedDate) return;
@@ -1382,9 +1275,6 @@ function initEvents() {
       if (el === els.dayMemo) updateDayRecord();
     });
   });
-
-  document.getElementById("employeeAnnualSalary").addEventListener("input", updateEmployeeCalculation);
-  document.getElementById("employeeFamilyCount").addEventListener("change", updateEmployeeCalculation);
 }
 
 function initTabs() {
@@ -1424,10 +1314,10 @@ function init() {
   loadState();
   syncSettingsToUI();
   initEvents();
+  initEmployee();
   initTabs();
   initFeedback();
   renderCalendar();
-  updateEmployeeCalculation();
 }
 
 init();
