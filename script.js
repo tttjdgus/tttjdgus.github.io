@@ -1363,6 +1363,21 @@ document.querySelectorAll('.modal').forEach(modal => {
   });
 });
 
+document.querySelectorAll('.modal-dont-checkbox').forEach(checkbox => {
+  const modal = checkbox.closest('.modal');
+  if (!modal) return;
+  const type = modal.id.replace(/Modal$/, '');
+  checkbox.addEventListener('change', () => {
+    try {
+      if (checkbox.checked) {
+        localStorage.setItem('dontShow_' + type, 'true');
+      } else {
+        localStorage.removeItem('dontShow_' + type);
+      }
+    } catch (e) {}
+  });
+});
+
 document.querySelectorAll('.legal-link').forEach(link => {
   link.addEventListener('click', (e) => {
     e.preventDefault();
@@ -1370,7 +1385,6 @@ document.querySelectorAll('.legal-link').forEach(link => {
     const type = href === '#privacy' ? 'privacy' : 'terms';
     const modalId = type + 'Modal';
     if (localStorage.getItem('dontShow_' + type) === 'true') {
-      alert('이전에 "다시 보지 않기"를 선택하셨습니다. 브라우저 설정에서 localStorage를 초기화하면 다시 볼 수 있습니다.');
       return;
     }
     openModal(modalId);
