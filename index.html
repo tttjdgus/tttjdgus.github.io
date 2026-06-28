@@ -330,6 +330,57 @@
     </section>
 
 
+    <!-- 법적 정보 섹션 -->
+    <section class="card legal-section" id="legalSection">
+      <h2 class="section-title">법적 정보</h2>
+      <nav class="legal-nav">
+        <a href="#privacy" class="legal-link">개인정보처리방침</a>
+        <a href="#terms" class="legal-link">이용약관</a>
+      </nav>
+    </section>
+
+    <!-- 개인정보처리방침 모달 -->
+    <div id="privacyModal" class="modal" hidden>
+      <div class="modal-content">
+        <button class="modal-close" onclick="closeModal('privacyModal')">×</button>
+        <h2>개인정보처리방침</h2>
+        <div class="modal-body">
+          <h3>1. 수집하는 정보</h3>
+          <p>본 사이트는 localStorage를 사용하여 사용자의 근무 기록을 기기에 저장합니다. 서버로 개인정보를 전송하지 않습니다.</p>
+          
+          <h3>2. 쿠키 및 추적</h3>
+          <p>Google AdSense는 관심사 기반 광고를 위해 쿠키를 사용할 수 있습니다.</p>
+          
+          <h3>3. 문의</h3>
+          <p>개인정보 관련 문의: [성현이 이메일]</p>
+          
+          <h3>4. 개정</h3>
+          <p>본 정책은 예고 없이 변경될 수 있습니다. 마지막 수정일: 2026년 6월</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 이용약관 모달 -->
+    <div id="termsModal" class="modal" hidden>
+      <div class="modal-content">
+        <button class="modal-close" onclick="closeModal('termsModal')">×</button>
+        <h2>이용약관</h2>
+        <div class="modal-body">
+          <h3>1. 서비스 이용</h3>
+          <p>본 사이트는 급여 계산 참고용입니다. 정확한 급여 계산은 회계사 또는 HR 담당자와 상담하시기 바랍니다.</p>
+          
+          <h3>2. 면책</h3>
+          <p>본 사이트의 계산 결과로 인한 손해에 대해 책임지지 않습니다.</p>
+          
+          <h3>3. 지적재산권</h3>
+          <p>본 사이트의 콘텐츠는 저작권 보호를 받습니다.</p>
+          
+          <h3>4. 정책 변경</h3>
+          <p>이용약관은 예고 없이 변경될 수 있습니다.</p>
+        </div>
+      </div>
+    </div>
+
     <footer id="appFooter">
       <p>야간 22:00~06:00 · 연장 8h 초과 · 공휴일·주휴 1.5배 · 주 15h 이상 주휴수당</p>
     </footer>

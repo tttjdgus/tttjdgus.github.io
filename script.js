@@ -1320,4 +1320,24 @@ function init() {
   renderCalendar();
 }
 
+function openModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.hidden = false;
+}
+
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.hidden = true;
+}
+
+// 법적 정보 링크 클릭 이벤트
+document.querySelectorAll('.legal-link').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const href = link.getAttribute('href');
+    if (href === '#privacy') openModal('privacyModal');
+    else if (href === '#terms') openModal('termsModal');
+  });
+});
+
 init();
