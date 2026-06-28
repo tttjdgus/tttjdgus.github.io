@@ -142,7 +142,9 @@ const els = {
   feedbackForm: document.getElementById("feedbackForm"),
   feedbackAuthor: document.getElementById("feedbackAuthor"),
   feedbackMessage: document.getElementById("feedbackMessage"),
-  feedbackList: document.getElementById("feedbackList"),
+  feedbackSubmit: document.getElementById("feedbackSubmit"),
+  feedbackSuccess: document.getElementById("feedbackSuccess"),
+  feedbackError: document.getElementById("feedbackError"),
 };
 
 function getActiveJob() {
@@ -518,91 +520,67 @@ function initTheme() {
   });
 }
 
-function loadFeedback() {
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/xykqjyne";
+
+function hideFeedbackStatus() {
+  els.feedbackSuccess.hidden = true;
+  els.feedbackError.hidden = true;
+}
+
+function showFeedbackError(message) {
+  els.feedbackSuccess.hidden = true;
+  els.feedbackError.textContent = message;
+  els.feedbackError.hidden = false;
+}
+
+function showFeedbackSuccess() {
+  els.feedbackError.hidden = true;
+  els.feedbackSuccess.hidden = false;
+}
+
+async function submitFeedback(e) {
+  e.preventDefault();
+  hideFeedbackStatus();
+
+  const message = els.feedbackMessage.value.trim();
+  if (!message) return;
+
+  const author = els.feedbackAuthor.value.trim() || "익명";
+  els.feedbackSubmit.disabled = true;
+  els.feedbackSubmit.textContent = "전송 중…";
+
   try {
-    return JSON.parse(localStorage.getItem("wageCalcFeedback")) || [];
+    const response = await fetch(FORMSPREE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        author,
+        message,
+        _subject: "급여 계산기 피드백 — " + author,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (response.ok) {
+      els.feedbackForm.reset();
+      showFeedbackSuccess();
+    } else {
+      showFeedbackError(data.error || "전송에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    }
   } catch (_) {
-    return [];
+    showFeedbackError("네트워크 오류가 발생했습니다. 연결을 확인해 주세요.");
+  } finally {
+    els.feedbackSubmit.disabled = false;
+    els.feedbackSubmit.textContent = "등록";
   }
 }
 
-function saveFeedback(list) {
-  localStorage.setItem("wageCalcFeedback", JSON.stringify(list));
-}
-
-function formatFeedbackDate(iso) {
-  const d = new Date(iso);
-  return d.getFullYear() + "." +
-    String(d.getMonth() + 1).padStart(2, "0") + "." +
-    String(d.getDate()).padStart(2, "0") + " " +
-    String(d.getHours()).padStart(2, "0") + ":" +
-    String(d.getMinutes()).padStart(2, "0");
-}
-
-function renderFeedback() {
-  const list = loadFeedback();
-  els.feedbackList.innerHTML = "";
-
-  list.forEach((item) => {
-    const li = document.createElement("li");
-    li.className = "feedback-item";
-
-    const header = document.createElement("div");
-    header.className = "feedback-item-header";
-
-    const author = document.createElement("span");
-    author.className = "feedback-author";
-    author.textContent = item.author || "익명";
-
-    const date = document.createElement("span");
-    date.className = "feedback-date";
-    date.textContent = formatFeedbackDate(item.createdAt);
-
-    header.appendChild(author);
-    header.appendChild(date);
-
-    const message = document.createElement("p");
-    message.className = "feedback-message";
-    message.textContent = item.message;
-
-    const delBtn = document.createElement("button");
-    delBtn.type = "button";
-    delBtn.className = "feedback-delete";
-    delBtn.textContent = "삭제";
-    delBtn.addEventListener("click", () => {
-      if (!confirm("이 피드백을 삭제하시겠습니까?")) return;
-      saveFeedback(list.filter((f) => f.id !== item.id));
-      renderFeedback();
-    });
-
-    li.appendChild(header);
-    li.appendChild(message);
-    li.appendChild(delBtn);
-    els.feedbackList.appendChild(li);
-  });
-}
-
 function initFeedback() {
- // 폼프리이용대체 renderFeedback();
-
-  els.feedbackForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const message = els.feedbackMessage.value.trim();
-    if (!message) return;
-
-    const list = loadFeedback();
-    list.unshift({
-      id: "fb-" + Date.now(),
-      author: els.feedbackAuthor.value.trim() || "익명",
-      message,
-      createdAt: new Date().toISOString(),
-    });
-    saveFeedback(list);
-
-    els.feedbackAuthor.value = "";
-    els.feedbackMessage.value = "";
-    renderFeedback();
-  });
+  els.feedbackForm.addEventListener("submit", submitFeedback);
 }
 
 function saveState() {

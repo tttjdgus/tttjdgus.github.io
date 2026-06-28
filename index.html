@@ -250,19 +250,23 @@
     <section class="card feedback-section" id="feedbackSection">
       <h2 class="section-title">피드백 게시판</h2>
       <p class="feedback-desc">버그 제보, 기능 제안, 사용 후기를 남겨주세요.</p>
-      <form id="feedbackForm" class="feedback-form" action="https://formspree.io/f/xykqjyne" method="POST">
+      <div class="feedback-status feedback-success" id="feedbackSuccess" hidden role="status">
+        피드백이 전송되었습니다. 감사합니다!
+      </div>
+      <div class="feedback-status feedback-error" id="feedbackError" hidden role="alert"></div>
+      <form id="feedbackForm" class="feedback-form">
+        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" hidden aria-hidden="true">
         <div class="input-group">
           <label for="feedbackAuthor">이름 (선택)</label>
-          <input type="text" id="feedbackAuthor" maxlength="20" placeholder="익명">
+          <input type="text" id="feedbackAuthor" name="author" maxlength="20" placeholder="익명">
         </div>
         <div class="input-group">
           <label for="feedbackMessage">내용</label>
-          <textarea id="feedbackMessage" rows="3" maxlength="500" placeholder="건의사항이나 버그 제보를 입력해 주세요" required></textarea>
+          <textarea id="feedbackMessage" name="message" rows="3" maxlength="500" placeholder="건의사항이나 버그 제보를 입력해 주세요" required></textarea>
         </div>
-        <button type="submit" class="feedback-submit">등록</button>
+        <button type="submit" class="feedback-submit" id="feedbackSubmit">등록</button>
       </form>
-      <ul class="feedback-list" id="feedbackList" aria-live="polite"></ul>
-      <p class="hint feedback-note">피드백은 이 기기에만 저장됩니다.</p>
+      <p class="hint feedback-note">전송된 피드백은 개발자에게 전달됩니다.</p>
     </section>
 
     <footer id="appFooter">
