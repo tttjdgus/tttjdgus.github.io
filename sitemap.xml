@@ -26,6 +26,31 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://tttjdgus.github.io/guide/toejikgeum.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tttjdgus.github.io/guide/yeoncha-sudang.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tttjdgus.github.io/guide/alba-segeum.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tttjdgus.github.io/guide/geunro-gyeyakseo.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tttjdgus.github.io/about.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://tttjdgus.github.io/privacy.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
