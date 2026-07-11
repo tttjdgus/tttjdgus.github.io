@@ -133,8 +133,8 @@ function updateEmployeeCalculation() {
   }
   if (els.employeeSalaryHint) {
     els.employeeSalaryHint.textContent = mode === "annual"
-      ? "월 환산(÷12): " + monthlyGross.toLocaleString("ko-KR") + "원"
-      : "연봉 환산(×12): " + (monthlyGross * 12).toLocaleString("ko-KR") + "원";
+      ? "연봉 " + formatKoreanMoney(inputAmount) + " · 월 환산 " + formatKoreanMoney(monthlyGross)
+      : "월급 " + formatKoreanMoney(inputAmount) + " · 연봉 환산 " + formatKoreanMoney(monthlyGross * 12);
   }
 
   els.empMonthlyGross.textContent = monthlyGross.toLocaleString("ko-KR") + "원";
@@ -301,6 +301,20 @@ function getWorkDays() {
 
 function formatCurrency(amount) {
   return Math.round(amount).toLocaleString("ko-KR") + "원";
+}
+
+// 숫자를 한글 단위로 읽기 쉽게 변환: 36000000 → "3,600만원", 123450000 → "1억 2,345만원"
+function formatKoreanMoney(amount) {
+  const n = Math.round(Math.abs(amount));
+  if (n === 0) return "0원";
+  const eok = Math.floor(n / 100000000);
+  const man = Math.floor((n % 100000000) / 10000);
+  const won = n % 10000;
+  let parts = [];
+  if (eok > 0) parts.push(eok.toLocaleString("ko-KR") + "억");
+  if (man > 0) parts.push(man.toLocaleString("ko-KR") + "만");
+  if (won > 0) parts.push(won.toLocaleString("ko-KR"));
+  return parts.join(" ") + "원";
 }
 
 function formatHours(hours) {

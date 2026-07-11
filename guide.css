@@ -201,6 +201,11 @@ table.calc th {
   text-decoration: none;
 }
 
+/* .related a 규칙이 .cta의 흰 글자색을 덮어쓰지 않도록 우선순위 확보 */
+.related a.cta {
+  color: #fff;
+}
+
 .card-list {
   list-style: none;
   margin: 0;
