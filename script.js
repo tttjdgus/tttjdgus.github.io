@@ -23,9 +23,9 @@ const PUBLIC_HOLIDAYS = {
   ],
   2026: [
     "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18",
-    "2026-03-01", "2026-05-05", "2026-05-24", "2026-06-06",
-    "2026-08-15", "2026-09-24", "2026-09-25", "2026-09-26",
-    "2026-10-03", "2026-10-09", "2026-12-25",
+    "2026-03-01", "2026-03-02", "2026-05-05", "2026-05-24", "2026-05-25",
+    "2026-06-06", "2026-08-15", "2026-08-17", "2026-09-24", "2026-09-25",
+    "2026-09-26", "2026-10-03", "2026-10-05", "2026-10-09", "2026-12-25",
   ],
   2027: [
     "2027-01-01", "2027-02-06", "2027-02-07", "2027-02-08", "2027-02-09",
@@ -57,56 +57,85 @@ const TAX_RATES = {
 const WEEKLY_HOLIDAY_THRESHOLD = 15;
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
+// 2026년 근로자 부담 요율 (연금개혁·보건복지부 고시 반영)
 const EMPLOYEE_INSURANCE_RATES = {
-  nationalPension: 0.045,
-  healthInsurance: 0.03545,
-  longTermCare: 0.01295,
-  employmentInsurance: 0.009,
+  nationalPension: 0.0475,          // 국민연금 9.5%의 근로자 절반
+  healthInsurance: 0.03595,         // 건강보험 7.19%의 근로자 절반
+  longTermCareOfHealth: 0.9448 / 7.19, // 장기요양 = 건강보험료의 약 13.14%
+  employmentInsurance: 0.009,       // 고용보험 실업급여분
 };
 
-function calculateEmployeeInsurance(monthlyWage) {
-  const nationalPension = monthlyWage * EMPLOYEE_INSURANCE_RATES.nationalPension;
-  const healthInsurance = monthlyWage * EMPLOYEE_INSURANCE_RATES.healthInsurance;
-  const longTermCare = healthInsurance * EMPLOYEE_INSURANCE_RATES.longTermCare;
-  const employmentInsurance = monthlyWage * EMPLOYEE_INSURANCE_RATES.employmentInsurance;
+// 국민연금 기준소득월액 상·하한 (2025.7~2026.6 기준, 매년 7월 조정)
+const PENSION_BASE_MIN = 400000;
+const PENSION_BASE_MAX = 6370000;
+
+// 고지 관행에 맞춰 10원 미만 절사 (부동소수점 오차 방지를 위해 원 단위 반올림 후 절사)
+function truncTen(amount) {
+  return Math.floor(Math.round(amount) / 10) * 10;
+}
+
+function calculateEmployeeInsurance(monthlyTaxable) {
+  const pensionBase = Math.min(Math.max(monthlyTaxable, PENSION_BASE_MIN), PENSION_BASE_MAX);
+  const nationalPension = truncTen(pensionBase * EMPLOYEE_INSURANCE_RATES.nationalPension);
+  const healthInsurance = truncTen(monthlyTaxable * EMPLOYEE_INSURANCE_RATES.healthInsurance);
+  const longTermCare = truncTen(healthInsurance * EMPLOYEE_INSURANCE_RATES.longTermCareOfHealth);
+  const employmentInsurance = truncTen(monthlyTaxable * EMPLOYEE_INSURANCE_RATES.employmentInsurance);
 
   return {
-    nationalPension: Math.round(nationalPension),
-    healthInsurance: Math.round(healthInsurance),
-    longTermCare: Math.round(longTermCare),
-    employmentInsurance: Math.round(employmentInsurance),
-    totalInsurance: Math.round(nationalPension + healthInsurance + longTermCare + employmentInsurance),
+    nationalPension: nationalPension,
+    healthInsurance: healthInsurance,
+    longTermCare: longTermCare,
+    employmentInsurance: employmentInsurance,
+    totalInsurance: nationalPension + healthInsurance + longTermCare + employmentInsurance,
   };
 }
 
-function calculateEmployeeIncomeTax(monthlyWage, familyCount) {
-  let baseTax = monthlyWage * 0.055;
-  let familyDeduction = familyCount * 50000;
-  let incomeTax = Math.max(0, baseTax - familyDeduction);
-  let localTax = Math.round(incomeTax * 0.1);
+// 소득세: 국세청 근로소득 간이세액표(tax-table.js) 기준
+function calculateEmployeeIncomeTax(monthlyTaxable, familyCount, childCount) {
+  let incomeTax = lookupSimplifiedTax(monthlyTaxable, familyCount);
+  incomeTax = applyChildTaxAdjustment(incomeTax, childCount);
+  const localTax = Math.floor(incomeTax * 0.1 / 10) * 10; // 지방소득세 10%, 10원 미만 절사
 
   return {
-    incomeTax: Math.round(incomeTax),
+    incomeTax: incomeTax,
     localTax: localTax,
-    totalTax: Math.round(incomeTax) + localTax,
+    totalTax: incomeTax + localTax,
   };
+}
+
+function getSalaryMode() {
+  const radio = document.querySelector('input[name="salaryMode"]:checked');
+  return radio ? radio.value : "annual";
 }
 
 function updateEmployeeCalculation() {
-  const salaryEl = els.employeeAnnualSalary;
+  const salaryEl = els.employeeSalary;
   const familyEl = els.employeeFamilyCount;
   if (!salaryEl || !familyEl) return;
 
-  const annualSalary = parseInt(salaryEl.value, 10) || 0;
-  const familyCount = parseInt(familyEl.value, 10) || 0;
-  const monthlyGross = Math.round(annualSalary / 12);
+  const mode = getSalaryMode();
+  const inputAmount = parseInt(salaryEl.value, 10) || 0;
+  const monthlyGross = mode === "annual" ? Math.round(inputAmount / 12) : inputAmount;
+  const familyCount = parseInt(familyEl.value, 10) || 1;
+  const childCount = parseInt(els.employeeChildCount.value, 10) || 0;
+  const nonTaxable = parseInt(els.employeeNonTaxable.value, 10) || 0;
+  const monthlyTaxable = Math.max(0, monthlyGross - nonTaxable);
 
-  const insurance = calculateEmployeeInsurance(monthlyGross);
-  const tax = calculateEmployeeIncomeTax(monthlyGross, familyCount);
+  const insurance = calculateEmployeeInsurance(monthlyTaxable);
+  const tax = calculateEmployeeIncomeTax(monthlyTaxable, familyCount, childCount);
   const totalDeduction = insurance.totalInsurance + tax.totalTax;
   const monthlyNet = monthlyGross - totalDeduction;
 
   if (!els.empMonthlyGross) return;
+
+  if (els.employeeSalaryLabel) {
+    els.employeeSalaryLabel.textContent = mode === "annual" ? "연봉 (원)" : "월급 (원)";
+  }
+  if (els.employeeSalaryHint) {
+    els.employeeSalaryHint.textContent = mode === "annual"
+      ? "월 환산(÷12): " + monthlyGross.toLocaleString("ko-KR") + "원"
+      : "연봉 환산(×12): " + (monthlyGross * 12).toLocaleString("ko-KR") + "원";
+  }
 
   els.empMonthlyGross.textContent = monthlyGross.toLocaleString("ko-KR") + "원";
   els.empNationalPension.textContent = insurance.nationalPension.toLocaleString("ko-KR") + "원";
@@ -117,14 +146,31 @@ function updateEmployeeCalculation() {
   els.empLocalTax.textContent = tax.localTax.toLocaleString("ko-KR") + "원";
   els.empTotalDeduction.textContent = totalDeduction.toLocaleString("ko-KR") + "원";
   els.empMonthlyNet.textContent = monthlyNet.toLocaleString("ko-KR") + "원";
+  els.empMonthlyNetTop.textContent = monthlyNet.toLocaleString("ko-KR") + "원";
+  els.empTotalDeductionTop.textContent = totalDeduction.toLocaleString("ko-KR") + "원";
+  els.empAnnualNet.textContent = (monthlyNet * 12).toLocaleString("ko-KR") + "원";
 }
 
 function initEmployee() {
-  if (!els.employeeAnnualSalary || !els.employeeFamilyCount) return;
+  if (!els.employeeSalary || !els.employeeFamilyCount) return;
 
-  els.employeeAnnualSalary.addEventListener("input", updateEmployeeCalculation);
-  els.employeeAnnualSalary.addEventListener("change", updateEmployeeCalculation);
+  els.employeeSalary.addEventListener("input", updateEmployeeCalculation);
+  els.employeeSalary.addEventListener("change", updateEmployeeCalculation);
+  els.employeeNonTaxable.addEventListener("input", updateEmployeeCalculation);
   els.employeeFamilyCount.addEventListener("change", updateEmployeeCalculation);
+  els.employeeChildCount.addEventListener("change", updateEmployeeCalculation);
+  document.querySelectorAll('input[name="salaryMode"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      // 기준 전환 시 금액을 연↔월로 자동 환산해 준다 (전환 전 값은 반대 기준의 금액)
+      const amount = parseInt(els.employeeSalary.value, 10) || 0;
+      if (amount > 0) {
+        els.employeeSalary.value = radio.value === "monthly"
+          ? Math.round(amount / 12)
+          : amount * 12;
+      }
+      updateEmployeeCalculation();
+    });
+  });
   updateEmployeeCalculation();
 }
 
@@ -209,9 +255,16 @@ const els = {
   payHoliday: document.getElementById("payHoliday"),
   payTotal: document.getElementById("payTotal"),
   payNet: document.getElementById("payNet"),
-  employeeAnnualSalary: document.getElementById("employeeAnnualSalary"),
+  employeeSalary: document.getElementById("employeeSalary"),
+  employeeSalaryLabel: document.getElementById("employeeSalaryLabel"),
+  employeeSalaryHint: document.getElementById("employeeSalaryHint"),
+  employeeNonTaxable: document.getElementById("employeeNonTaxable"),
   employeeFamilyCount: document.getElementById("employeeFamilyCount"),
+  employeeChildCount: document.getElementById("employeeChildCount"),
   empMonthlyGross: document.getElementById("empMonthlyGross"),
+  empMonthlyNetTop: document.getElementById("empMonthlyNetTop"),
+  empTotalDeductionTop: document.getElementById("empTotalDeductionTop"),
+  empAnnualNet: document.getElementById("empAnnualNet"),
   empNationalPension: document.getElementById("empNationalPension"),
   empHealthInsurance: document.getElementById("empHealthInsurance"),
   empLongTermCare: document.getElementById("empLongTermCare"),
@@ -452,6 +505,9 @@ function getWeekStart(date) {
   return d;
 }
 
+// 주휴수당 = (1주 근무시간 ÷ 40, 최대 1) × 8시간 × 시급  (주 15시간 이상인 주만)
+// 가산수당(야간·연장·휴일)은 포함하지 않으며, 주휴일(일요일)이 속한 달에 귀속시켜
+// 월 경계에 걸친 주가 두 달에 이중 합산되지 않게 한다.
 function calcWeeklyHolidayPay(year, month, hourlyWage, workDays) {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
@@ -461,8 +517,6 @@ function calcWeeklyHolidayPay(year, month, hourlyWage, workDays) {
 
   while (weekStart <= lastDay) {
     let weekHours = 0;
-    let weekPay = 0;
-    let workDayCount = 0;
 
     for (let i = 0; i < 7; i++) {
       const d = new Date(weekStart);
@@ -470,21 +524,17 @@ function calcWeeklyHolidayPay(year, month, hourlyWage, workDays) {
       const key = dateKey(d.getFullYear(), d.getMonth(), d.getDate());
       const record = workDays[key];
       if (record && record.work) {
-        const pay = calcDayPay(record, key, hourlyWage);
-        weekHours += pay.hours;
-        weekPay += pay.base + pay.night + pay.overtime + pay.holiday;
-        workDayCount++;
+        weekHours += calcDayHours(record).hours;
       }
     }
 
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
-    const touchesMonth =
-      (weekStart.getMonth() === month && weekStart.getFullYear() === year) ||
-      (weekEnd.getMonth() === month && weekEnd.getFullYear() === year);
+    const belongsToMonth =
+      weekEnd.getMonth() === month && weekEnd.getFullYear() === year;
 
-    if (touchesMonth && weekHours >= WEEKLY_HOLIDAY_THRESHOLD && workDayCount > 0) {
-      totalWeeklyHoliday += weekPay / workDayCount;
+    if (belongsToMonth && weekHours >= WEEKLY_HOLIDAY_THRESHOLD) {
+      totalWeeklyHoliday += Math.min(weekHours / 40, 1) * 8 * hourlyWage;
     }
 
     weekStart.setDate(weekStart.getDate() + 7);

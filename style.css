@@ -1101,3 +1101,64 @@ footer p {
   cursor: pointer;
   margin-right: 6px;
 }
+/* 사용법 · FAQ */
+.faq-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.faq-item:last-of-type {
+  border-bottom: none;
+}
+
+.faq-item summary {
+  cursor: pointer;
+  padding: 12px 4px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  list-style: none;
+  position: relative;
+  padding-right: 26px;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::after {
+  content: "▾";
+  position: absolute;
+  right: 6px;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+.faq-item[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.faq-item summary:hover {
+  color: var(--primary);
+}
+
+.faq-body {
+  padding: 0 4px 14px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.faq-body a {
+  color: var(--primary);
+}
+
+.faq-body ol {
+  margin: 0 0 0 20px;
+}
+
+.faq-body li {
+  margin-bottom: 6px;
+}
+
+.faq-body strong {
+  color: var(--text);
+}
